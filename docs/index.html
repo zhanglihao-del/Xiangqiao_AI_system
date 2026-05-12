@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>湘桥村·端午龙舟文化 AI 检测系统</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#f7f8fa;font-family:"Microsoft YaHei",sans-serif;padding:15px}
+        .card{background:#fff;border-radius:12px;padding:18px;margin-bottom:15px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+        h2{text-align:center;margin-bottom:15px}
+        label{display:block;margin-bottom:6px}
+        textarea{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;min-height:120px;resize:vertical}
+        button{width:100%;padding:16px;background:#007bff;color:#fff;border:none;border-radius:8px;font-size:17px;font-weight:bold;margin:10px 0;cursor:pointer}
+        .result{background:#f8f9fa;padding:15px;border-radius:8px;white-space:pre-wrap;line-height:1.7}
+    </style>
+</head>
+<body>
+
+<h2>🏮 湘桥村·端午龙舟文化 AI 检测系统</h2>
+
+<div class="card">
+    <label>📝 输入你对湘桥村文化的理解</label>
+    <textarea id="userInput" placeholder="请输入你的回答，例如：湘桥村位于漳州，有600年历史..."></textarea>
+</div>
+
+<button onclick="startCheck()">✅ AI 检测真实度 + 纠正</button>
+
+<div class="card">
+    <label>📊 AI 真实性判断</label>
+    <div id="scoreResult" class="result"></div>
+</div>
+
+<div class="card">
+    <label>⭐ AI 修正后的正确版本</label>
+    <div id="correctResult" class="result"></div>
+</div>
+
+<script>
+// 后面拿到函数计算地址后，再修改这里
+const PROXY_URL = "https://你的函数计算公网地址";
+
+async function startCheck() {
+    const text = document.getElementById("userInput").value.trim();
+    if (!text) { alert("请输入内容"); return; }
+
+    document.getElementById("scoreResult").innerText = "⏳ AI 分析中...";
+    document.getElementById("correctResult").innerText = "";
+
+    const prompt = `
+你是漳州湘桥村历史文化权威专家。
+请对用户输入的内容进行全方位、细致、人性化的评分，绝不一刀切！
+
+【评分规则】
+100%：完全正确，信息完整详细
+80-95%：主体正确，仅少量细节错误
+50-79%：大部分正确，部分信息不准确
+20-49%：仅少量相关内容，整体笼统/错误多
+0-19%：与湘桥村文化无关或严重错误
+
+【回答格式（必须严格遵守）】
+【真实度】XX%
+【判断】XXX（说明哪些答对了、哪些答错了）
+【错误纠正】XXX（逐条指出并纠正错误）
+【正确完整版】XXX（输出湘桥村文化的完整正确介绍）
+
+用户输入：${text}
+`;
+
+    try {
+        const res = await fetch(PROXY_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt })
+        });
+
+        const data = await res.json();
+        const result = data.answer;
+        const parts = result.split("【正确完整版】");
+
+        document.getElementById("scoreResult").innerText = parts[0].trim();
+        document.getElementById("correctResult").innerText = "【正确完整版】\n" + (parts[1] || "");
+
+    } catch (e) {
+        console.error(e);
+        document.getElementById("scoreResult").innerText = "❌ 连接失败，请稍后再试";
+    }
+}
+</script>
+</body>
+</html>
