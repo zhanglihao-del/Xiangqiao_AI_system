@@ -1,44 +1,99 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>湘桥村龙舟文化 AI 检测系统</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#f7f9fc;font-family:"Microsoft YaHei",sans-serif;padding:20px}
-.main{max-width:600px;margin:0 auto;background:#fff;padding:24px;border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,0.06)}
-h1{text-align:center;color:#005bb5;margin-bottom:20px}
-textarea{width:100%;height:140px;padding:14px;border:1px solid #ddd;border-radius:10px;font-size:16px}
-button{width:100%;padding:16px;background:#005bb5;color:white;border:none;border-radius:10px;font-size:17px;margin-top:12px}
-#result{margin-top:20px;padding:16px;background:#f0f7ff;border-radius:10px;min-height:80px;line-height:1.6}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>湘桥村龙舟文化 AI 检测系统</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#f7f8fa;font-family:"Microsoft YaHei";padding:15px}
+        .card{background:#fff;border-radius:12px;padding:18px;margin-bottom:15px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+        h2{text-align:center;margin-bottom:15px}
+        label{display:block;margin-bottom:6px}
+        textarea{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;min-height:140px}
+        button{width:100%;padding:16px;background:#007bff;color:#fff;border:none;border-radius:10px;font-size:17px;font-weight:bold;margin:10px 0}
+        .result{background:#f8f9fa;padding:15px;border-radius:8px;white-space:pre-wrap;line-height:1.7}
+    </style>
 </head>
 <body>
-<div class="main">
-<h1>🏮湘桥村龙舟文化 AI 检测</h1>
-<textarea id="input" placeholder="请输入关于湘桥村龙舟文化的内容"></textarea>
-<button onclick="run()">✅ AI 检测评分</button>
-<div id="result">结果将在这里显示</div>
+
+<h2>🏮 湘桥村·端午龙舟文化 AI 检测系统</h2>
+
+<div class="card">
+    <label>📝 输入你对湘桥村文化的理解</label>
+    <textarea id="userInput" placeholder="请输入你的描述，例如：湘桥村的龙舟节在什么时候举办？"></textarea>
+</div>
+
+<button onclick="startCheck()">✅ AI 检测真实度 + 纠正</button>
+
+<div class="card">
+    <label>📊 AI 真实性判断</label>
+    <div id="scoreResult" class="result"></div>
+</div>
+
+<div class="card">
+    <label>📌 AI 修正后的正确版本</label>
+    <div id="correctResult" class="result"></div>
 </div>
 
 <script>
-async function run(){
-const t=document.getElementById("input").value.trim();
-if(!t)return alert("请输入内容");
-const r=document.getElementById("result");
-r.innerText="⏳ AI 分析中...";
-try{
-const res=await fetch("/api/ai",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({text:t})
-});
-const d=await res.json();
-r.innerText=d.answer;
-}catch(e){
-r.innerText="❌ 连接失败，请稍后再试";
-}
+// 适配 Vercel 的后端地址
+const PROXY_URL = "/api/ai";
+
+async function startCheck() {
+    const text = document.getElementById("userInput").value.trim();
+    if (!text) { alert("请输入内容"); return; }
+
+    document.getElementById("scoreResult").innerText = "⏳ AI 分析中...";
+    document.getElementById("correctResult").innerText = "";
+
+    // 🔥 关键：新版人性化、不一刀切的提示词
+    const prompt = `
+你是漳州湘桥村历史文化权威专家。
+请对用户输入的内容进行【全方位、细致、人性化】评分，绝对不要一刀切！
+
+【评分规则（所有维度通用：历史、时间、地点、人物、习俗、龙舟文化等）】
+1. 100%：完全正确，信息完整详细
+2. 80-95%：主体正确，仅少量细节错误
+3. 50-79%：大部分正确，部分信息不准确或不完整
+4. 20-49%：部分内容沾边、有一定正确性，但错误较多
+5. 0-19%：完全错误，与湘桥村真实文化无关
+
+【你的任务】
+1. 给出真实度百分比
+2. 明确说明：哪些内容答对了、哪些答错了
+3. 逐条纠正错误
+4. 输出完整正确的湘桥村文化介绍
+
+用户输入：${text}
+
+请严格按以下格式输出：
+【真实度】XX%
+【判断】XXX（说明答对了什么、答错了什么）
+【错误纠正】
+XXX
+【正确完整版】
+XXX
+`;
+
+    try {
+        const res = await fetch(PROXY_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt: prompt })
+        });
+
+        const data = await res.json();
+        const result = data.content;
+        const parts = result.split("【正确完整版】");
+
+        document.getElementById("scoreResult").innerText = parts[0].trim();
+        document.getElementById("correctResult").innerText = "【正确完整版】\n" + (parts[1] || "").trim();
+
+    } catch (e) {
+        console.error(e);
+        document.getElementById("scoreResult").innerText = "❌ 连接失败，请稍后再试";
+    }
 }
 </script>
 </body>
