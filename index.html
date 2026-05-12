@@ -1,98 +1,122 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>湘桥村龙舟文化 AI 检测系统</title>
+    <title>湘桥村·端午龙舟文化 AI 智能检测系统</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
-        body{background:#f7f8fa;font-family:"Microsoft YaHei";padding:15px}
-        .card{background:#fff;border-radius:12px;padding:18px;margin-bottom:15px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
-        h2{text-align:center;margin-bottom:15px}
-        label{display:block;margin-bottom:6px}
-        textarea{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;min-height:140px}
-        button{width:100%;padding:16px;background:#007bff;color:#fff;border:none;border-radius:10px;font-size:17px;font-weight:bold;margin:10px 0}
+        body{background:#f7f8fa;font-family:"Microsoft YaHei",sans-serif;padding:15px}
+        .card{background:#fff;border-radius:12px;padding:18px;margin-bottom:15px;box-shadow:0 2px 12px rgba(0,0,0,0.08)}
+        h2{text-align:center;margin-bottom:15px;color:#005cbf}
+        label{display:block;margin-bottom:6px;font-weight:bold}
+        textarea{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;min-height:120px;resize:vertical}
+        button{width:100%;padding:16px;background:#007bff;color:#fff;border:none;border-radius:8px;font-size:17px;font-weight:bold;margin:10px 0;cursor:pointer}
+        button:hover{background:#0066cc}
         .result{background:#f8f9fa;padding:15px;border-radius:8px;white-space:pre-wrap;line-height:1.7}
+        .follow-up-tip{margin-top:10px;padding:10px;background:#e9f2ff;border-radius:8px;color:#005cbf;font-size:14px}
     </style>
 </head>
 <body>
 
-<h2>🏮 湘桥村·端午龙舟文化 AI 检测系统</h2>
+<h2>🏮 湘桥村·端午龙舟文化 AI 智能检测系统</h2>
 
 <div class="card">
-    <label>📝 输入你对湘桥村文化的理解</label>
-    <textarea id="userInput" placeholder="请输入你的描述，例如：湘桥村的龙舟节在什么时候举办？"></textarea>
+    <label>📝 输入你对湘桥村文化的理解，或直接提问（如：龙舟制作、古桥历史）</label>
+    <textarea id="userInput" placeholder="输入描述、关键词，或直接问问题…"></textarea>
 </div>
 
-<button onclick="startCheck()">✅ AI 检测真实度 + 纠正</button>
+<button onclick="startCheck()">✅ AI 深度检测 + 权威纠正</button>
 
 <div class="card">
-    <label>📊 AI 真实性判断</label>
+    <label>📊 真实性综合评判</label>
     <div id="scoreResult" class="result"></div>
 </div>
 
 <div class="card">
-    <label>📌 AI 修正后的正确版本</label>
+    <label>⭐ 湘桥村文化深度解析（结合你的输入）</label>
     <div id="correctResult" class="result"></div>
 </div>
 
+<div class="follow-up-tip">
+    💬 你可以继续追问！试试输入：龙舟制作 / 古桥历史 / 宗祠文化 / 龙舟仪式 / 建筑特色
+</div>
+
 <script>
-// 适配 Vercel 的后端地址
-const PROXY_URL = "/api/ai";
+const API_KEY = "sk-929f977a6546471a90d935b7bc1d79a5";
+const API_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
 
 async function startCheck() {
     const text = document.getElementById("userInput").value.trim();
     if (!text) { alert("请输入内容"); return; }
 
-    document.getElementById("scoreResult").innerText = "⏳ AI 分析中...";
-    document.getElementById("correctResult").innerText = "";
+    const scoreEl = document.getElementById("scoreResult");
+    const correctEl = document.getElementById("correctResult");
+    scoreEl.innerText = "⏳ AI 正在深度思考中...";
+    correctEl.innerText = "";
 
-    // 🔥 关键：新版人性化、不一刀切的提示词
+    // 1. 识别用户输入的核心关键词，决定解析重点
+    const keywords = {
+        history: /历史|年|明代|时间/i.test(text),
+        location: /福建|漳州|位置|地点|在哪/i.test(text),
+        dragonboat: /龙舟|端午|竞渡|仪式/i.test(text),
+        architecture: /古桥|建筑|古厝|宗祠/i.test(text)
+    };
+
+    // 2. 构建跟随用户认知的prompt
     const prompt = `
-你是漳州湘桥村历史文化权威专家。
-请对用户输入的内容进行【全方位、细致、人性化】评分，绝对不要一刀切！
+你是【福建省漳州市龙海区角美镇湘桥村】的专属深度文化导师，回答必须紧扣湘桥村，核心围绕端午龙舟文化。
 
-【评分规则（所有维度通用：历史、时间、地点、人物、习俗、龙舟文化等）】
-1. 100%：完全正确，信息完整详细
-2. 80-95%：主体正确，仅少量细节错误
-3. 50-79%：大部分正确，部分信息不准确或不完整
-4. 20-49%：部分内容沾边、有一定正确性，但错误较多
-5. 0-19%：完全错误，与湘桥村真实文化无关
+【湘桥村权威背景（必须牢记）】
+- 位置：福建省漳州市龙海区角美镇，九龙江畔
+- 历史：始建于明代，距今近600年，以村中明代古桥“湘桥”得名
+- 核心文化：端午龙舟竞渡（国家级非遗民俗）、闽南红砖古厝、宗祠文化、古桥文化
+- 重点：龙舟文化是湘桥村的灵魂，所有回答都要体现它的仪式、历史、宗族意义
 
-【你的任务】
-1. 给出真实度百分比
-2. 明确说明：哪些内容答对了、哪些答错了
-3. 逐条纠正错误
-4. 输出完整正确的湘桥村文化介绍
+用户输入的内容是：${text}
+请你：
+1.  先做真实性评分，绝不一刀切
+2.  评析、纠正、拓展要结合用户的输入内容，语气友好
+3.  最后的【湘桥村文化深度解析】，**必须顺着用户的认知重点做个性化扩充**：
+    - 如果用户提到了「历史/年代」，解析重点就讲湘桥村600年的历史脉络、明代遗存、龙舟文化传承
+    - 如果用户提到了「位置/地点」，解析重点就讲湘桥村的地理环境、九龙江畔的水乡特色、龙舟竞渡的地理优势
+    - 如果用户提到了「龙舟/端午」，解析重点就讲湘桥村龙舟文化的仪式流程、宗族意义、非遗传承
+    - 如果用户提到了「建筑/古桥」，解析重点就讲湘桥村的红砖古厝、宗祠建筑、古桥历史与龙舟文化的关联
+    - 无论用户输入什么，解析都必须以湘桥村的端午龙舟文化为核心，不能跑题
+4.  解析结尾主动引导用户追问，比如“你还可以问我关于龙舟制作、古桥历史等问题”
 
-用户输入：${text}
-
-请严格按以下格式输出：
+输出格式（严格遵守）：
 【真实度】XX%
-【判断】XXX（说明答对了什么、答错了什么）
-【错误纠正】
-XXX
-【正确完整版】
-XXX
+【深度评析】（结合用户输入，针对性分析）
+【错误纠正】（逐条修正错误，给出湘桥村真实情况）
+【知识拓展】（补充湘桥村知识点，关联龙舟文化）
+【湘桥村文化深度解析】（顺着用户的认知重点，做个性化深度解析，每次内容不同，核心紧扣龙舟文化）
 `;
 
     try {
-        const res = await fetch(PROXY_URL, {
+        const res = await fetch(API_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt: prompt })
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${API_KEY}`
+            },
+            body: JSON.stringify({
+                model: "qwen-turbo",
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.7
+            })
         });
 
         const data = await res.json();
-        const result = data.content;
-        const parts = result.split("【正确完整版】");
+        const result = data.choices[0].message.content;
+        const parts = result.split("【湘桥村文化深度解析】");
 
-        document.getElementById("scoreResult").innerText = parts[0].trim();
-        document.getElementById("correctResult").innerText = "【正确完整版】\n" + (parts[1] || "").trim();
+        scoreEl.innerText = parts[0].trim();
+        correctEl.innerText = "【湘桥村文化深度解析】\n" + (parts[1] || "");
 
     } catch (e) {
-        console.error(e);
-        document.getElementById("scoreResult").innerText = "❌ 连接失败，请稍后再试";
+        scoreEl.innerText = "❌ 服务繁忙，请稍后再试";
     }
 }
 </script>
